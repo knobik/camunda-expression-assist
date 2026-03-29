@@ -1,0 +1,20 @@
+{
+  "name": "camunda-modeler-expression-assist",
+  "version": "0.1.0",
+  "description": "JUEL expression autocompletion and validation for Camunda Modeler (Camunda 7)",
+  "main": "index.js",
+  "scripts": {
+    "build": "peggy --format es src/juel.peggy -o src/juelParser.js && webpack",
+    "watch": "peggy --format es src/juel.peggy -o src/juelParser.js && webpack --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "camunda-modeler-plugin-helpers": "^6.0.0",
+    "camunda-modeler-webpack-plugin": "^0.2.0",
+    "peggy": "^4.2.0",
+    "vitest": "^3.1.1",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^7.0.0"
+  }
+}

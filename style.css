@@ -1,0 +1,42 @@
+/* ============================================
+   Expression Assist Plugin — Styles
+   ============================================ */
+
+/* --- Validation indicators --- */
+
+.ea-validation-error {
+  border-color: #ef4444 !important;
+  outline-color: #ef4444 !important;
+}
+
+.ea-validation-warning {
+  border-color: #f59e0b !important;
+  outline-color: #f59e0b !important;
+}
+
+/* --- Validation tooltip --- */
+
+.ea-tooltip {
+  position: fixed;
+  z-index: 10001;
+  background: #1e1e1e;
+  color: #e5e5e5;
+  font-size: 11px;
+  font-family: inherit;
+  padding: 6px 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  max-width: 350px;
+  pointer-events: none;
+}
+
+.ea-tooltip-line {
+  padding: 1px 0;
+  line-height: 1.4;
+}
+
+.ea-tooltip-line + .ea-tooltip-line {
+  border-top: 1px solid #333;
+  margin-top: 3px;
+  padding-top: 3px;
+}

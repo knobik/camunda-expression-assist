@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Create release archive
+        run: |
+          mkdir -p /tmp/expression-assist
+          rsync -a --exclude node_modules --exclude .git --exclude .github --exclude src --exclude .idea . /tmp/expression-assist/
+          cd /tmp
+          zip -r ${{ github.workspace }}/expression-assist.zip expression-assist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: expression-assist.zip
+          generate_release_notes: true
