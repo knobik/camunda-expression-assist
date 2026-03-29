@@ -1,8 +1,3 @@
-/**
- * Watches the properties panel for expression input fields and attaches
- * validation behavior via event delegation.
- */
-
 import { validate, findSimilar } from './JuelValidator';
 
 const INPUT_SELECTOR = [
@@ -18,6 +13,7 @@ export default class FieldInterceptor {
     this._validationMarkers = new Map();
     this._tooltipEl = null;
     this._tooltipInput = null;
+    this._focusoutTimer = null;
 
     this._handlers = {
       focusin: (e) => this._onFocusIn(e),
@@ -35,15 +31,12 @@ export default class FieldInterceptor {
       container.addEventListener(event, handler, true);
     }
 
-    // Watch for DOM changes to validate newly rendered fields
     this._observer = new MutationObserver(() => {
       clearTimeout(this._scanDebounce);
       this._scanDebounce = setTimeout(() => this._validateAllFields(), 150);
     });
 
     this._observer.observe(container, { childList: true, subtree: true });
-
-    // Initial scan
     this._validateAllFields();
   }
 
@@ -58,6 +51,7 @@ export default class FieldInterceptor {
       this._observer = null;
     }
     clearTimeout(this._scanDebounce);
+    clearTimeout(this._focusoutTimer);
     this._clearAllValidation();
     this._container = null;
   }
@@ -67,11 +61,10 @@ export default class FieldInterceptor {
     this._removeTooltip();
   }
 
-  // --- Event handlers ---
-
   _onFocusIn(e) {
     const input = e.target.closest(INPUT_SELECTOR);
     if (!input) return;
+    clearTimeout(this._focusoutTimer);
     this._clearValidation(input);
   }
 
@@ -81,7 +74,8 @@ export default class FieldInterceptor {
 
     this._removeTooltip();
 
-    setTimeout(() => {
+    clearTimeout(this._focusoutTimer);
+    this._focusoutTimer = setTimeout(() => {
       this._validateField(input);
     }, 100);
   }
@@ -100,18 +94,14 @@ export default class FieldInterceptor {
     const input = e.target.closest(INPUT_SELECTOR);
     if (!input) return;
 
-    // Only hide if we're leaving a validated input
     if (this._tooltipInput === input) {
       this._removeTooltip();
     }
   }
 
-  // --- Validation ---
-
   _validateAllFields() {
     if (!this._container) return;
 
-    // Clean up markers for inputs no longer in DOM
     for (const [input] of this._validationMarkers) {
       if (!this._container.contains(input)) {
         this._validationMarkers.delete(input);
@@ -123,7 +113,6 @@ export default class FieldInterceptor {
 
     const inputs = this._container.querySelectorAll(INPUT_SELECTOR);
     for (const input of inputs) {
-      // Skip the currently focused field
       if (document.activeElement === input) continue;
       this._validateField(input);
     }
@@ -131,6 +120,11 @@ export default class FieldInterceptor {
 
   _validateField(input) {
     const value = input.value || input.textContent || '';
+
+    // Skip re-validation if value hasn't changed
+    const marker = this._validationMarkers.get(input);
+    if (marker && marker.lastValue === value) return;
+
     if (!value.includes('${') && !value.includes('#{')) {
       this._clearValidation(input);
       return;
@@ -159,7 +153,7 @@ export default class FieldInterceptor {
       return msg;
     });
 
-    this._validationMarkers.set(input, { cls, messages });
+    this._validationMarkers.set(input, { cls, messages, lastValue: value });
   }
 
   _clearValidation(input) {
@@ -183,9 +177,13 @@ export default class FieldInterceptor {
 
     const el = document.createElement('div');
     el.className = 'ea-tooltip';
-    el.innerHTML = messages.map(m =>
-      `<div class="ea-tooltip-line">${this._escapeHtml(m)}</div>`
-    ).join('');
+
+    for (const msg of messages) {
+      const line = document.createElement('div');
+      line.className = 'ea-tooltip-line';
+      line.textContent = msg;
+      el.appendChild(line);
+    }
 
     const rect = input.getBoundingClientRect();
     el.style.left = rect.left + 'px';
@@ -202,9 +200,5 @@ export default class FieldInterceptor {
     }
     this._tooltipEl = null;
     this._tooltipInput = null;
-  }
-
-  _escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 }

@@ -1,25 +1,17 @@
-/**
- * bpmn-js module that provides JUEL expression autocompletion and validation.
- * Consumes variable data from the variable-picker's VariableScanner via eventBus.
- */
-
 import FieldInterceptor from './FieldInterceptor';
 
 export default class ExpressionAssistPlugin {
 
-  constructor(eventBus, canvas) {
+  constructor(eventBus) {
     this._eventBus = eventBus;
-    this._canvas = canvas;
     this._variables = [];
     this._fieldInterceptor = null;
     this._containerObserver = null;
 
-    // Listen for variable updates from variable-picker plugin
     eventBus.on('variableScanner.variablesChanged', (e) => {
       this._variables = e.variables || [];
     });
 
-    // Attach to properties panel when diagram is ready
     eventBus.on('canvas.init', () => {
       this._watchForPropertiesContainer();
     });
@@ -29,14 +21,7 @@ export default class ExpressionAssistPlugin {
     });
   }
 
-  _getVariables() {
-    return this._variables;
-  }
-
-  /**
-   * Watch for the properties panel container to appear/reappear.
-   * The container gets destroyed and recreated on XML<->modeler toggle.
-   */
+  // Container gets destroyed and recreated on XML<->modeler toggle
   _watchForPropertiesContainer() {
     if (this._containerObserver) {
       this._containerObserver.disconnect();
@@ -70,7 +55,7 @@ export default class ExpressionAssistPlugin {
     }
 
     this._fieldInterceptor = new FieldInterceptor(
-      () => this._getVariables()
+      () => this._variables
     );
 
     this._fieldInterceptor.attach(container);
@@ -92,4 +77,4 @@ export default class ExpressionAssistPlugin {
   }
 }
 
-ExpressionAssistPlugin.$inject = ['eventBus', 'canvas'];
+ExpressionAssistPlugin.$inject = ['eventBus'];

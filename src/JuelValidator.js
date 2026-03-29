@@ -1,15 +1,5 @@
-/**
- * JUEL expression validator.
- * Uses the Peggy-generated parser for syntax checking and
- * cross-references variable names against known variables.
- */
-
 import * as parser from './juelParser';
 
-/**
- * Extract all Identifier nodes from a JUEL AST.
- * Only collects root-level identifiers (not property accesses after dots).
- */
 function collectVariableRefs(node, refs = []) {
   if (!node || typeof node !== 'object') return refs;
 
@@ -18,9 +8,7 @@ function collectVariableRefs(node, refs = []) {
   }
 
   if (node.type === 'MemberExpression' && !node.computed) {
-    // For foo.bar — only 'foo' is a variable reference, 'bar' is a property
     collectVariableRefs(node.object, refs);
-    // Skip node.property (it's a dot-access identifier, not a variable)
     return refs;
   }
 
@@ -43,7 +31,6 @@ function collectVariableRefs(node, refs = []) {
     return refs;
   }
 
-  // Walk known AST shapes
   for (const key of ['body', 'condition', 'consequent', 'alternate', 'left', 'right', 'argument']) {
     if (node[key]) collectVariableRefs(node[key], refs);
   }
@@ -51,38 +38,24 @@ function collectVariableRefs(node, refs = []) {
   return refs;
 }
 
-// Well-known JUEL implicit objects and functions
 const BUILTINS = new Set([
-  // EL implicit objects
   'pageContext', 'pageScope', 'requestScope', 'sessionScope', 'applicationScope',
   'param', 'paramValues', 'header', 'headerValues', 'initParam', 'cookie',
-  // Camunda-specific
   'execution', 'task', 'authenticatedUserId', 'currentUser', 'now',
   'dateTime', 'connector', 'S', 'XML', 'JSON',
-  // Common Java types used in expressions
   'Math', 'Integer', 'Long', 'Double', 'String', 'Boolean',
-  // SPIN
   'SPIN'
 ]);
 
-/**
- * Validate a JUEL expression string.
- *
- * @param {string} value - The full field value (may contain ${...} or be plain text)
- * @param {Array} knownVariables - Array of { name: string } from VariableScanner
- * @returns {Array} - Array of { type: 'error'|'warning', message: string, location: object }
- */
 export function validate(value, knownVariables = []) {
   const diagnostics = [];
   const knownNames = new Set(knownVariables.map(v => v.name));
 
-  // Find all expression blocks in the value
   const exprPattern = /(\$\{|\#\{)/g;
   let match;
 
   while ((match = exprPattern.exec(value)) !== null) {
     const start = match.index;
-    // Find matching closing brace
     let depth = 1;
     let pos = start + 2;
     let inStr = false;
@@ -110,16 +83,13 @@ export function validate(value, knownVariables = []) {
       continue;
     }
 
-    // Extract the full expression including delimiters
     const exprText = value.substring(start, pos);
 
-    // Try to parse
     let ast;
     try {
       ast = parser.parse(exprText);
     } catch (e) {
       const msg = e.message || 'Syntax error';
-      // Extract a cleaner message
       const cleanMsg = msg.includes('Expected')
         ? msg.substring(0, msg.indexOf('.') + 1) || msg
         : msg;
@@ -132,7 +102,6 @@ export function validate(value, knownVariables = []) {
       continue;
     }
 
-    // Check variable references
     const refs = collectVariableRefs(ast);
     for (const ref of refs) {
       if (!knownNames.has(ref.name) && !BUILTINS.has(ref.name)) {
@@ -149,9 +118,6 @@ export function validate(value, knownVariables = []) {
   return diagnostics;
 }
 
-/**
- * Find the closest matching variable name for typo suggestions.
- */
 export function findSimilar(name, knownVariables) {
   const threshold = Math.max(1, Math.floor(name.length * 0.4));
   let best = null;
