@@ -14,7 +14,7 @@
     "camunda-modeler-webpack-plugin": "^0.2.0",
     "peggy": "^5.1.0",
     "vitest": "^4.1.2",
-    "webpack": "^5.74.0",
+    "webpack": "^5.106.1",
     "webpack-cli": "^7.0.0"
   }
 }
